@@ -90,6 +90,26 @@ export const apiService = {
       throw error;
     }
   },
+
+  // Caption check: compare caption vs image content
+  captionCheck: async (file, caption) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (caption !== undefined && caption !== null) {
+        formData.append('caption', caption);
+      }
+
+      const response = await api.post('/api/caption-check', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 }
 
 

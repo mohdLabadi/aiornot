@@ -11,6 +11,7 @@ export default function ImageUpload({ onImageUpload, onAnalysisComplete }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState(null);
+  const [caption, setCaption] = useState('');
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -52,6 +53,7 @@ export default function ImageUpload({ onImageUpload, onAnalysisComplete }) {
     setUploadedImage(null);
     setUploadedFile(null);
     setError(null);
+    setCaption('');
     if (onImageUpload) onImageUpload(null);
   };
 
@@ -64,11 +66,22 @@ export default function ImageUpload({ onImageUpload, onAnalysisComplete }) {
     try {
       const result = await apiService.analyzeImage(uploadedFile);
       const gpt_result = await apiService.detectAI(uploadedFile);
+      let caption_result = null;
+
+      // Run caption check alongside other analyses
+      try {
+        caption_result = await apiService.captionCheck(uploadedFile, caption);
+      } catch (captionErr) {
+        console.error('Caption check failed:', captionErr);
+      }
       console.log('Analysis result:', result);
       console.log('GPT result:', gpt_result);
+      if (caption_result) {
+        console.log('Caption check result:', caption_result);
+      }
 
       if (onAnalysisComplete) {
-        onAnalysisComplete(result, gpt_result);
+        onAnalysisComplete(result, gpt_result, caption_result);
       }
 
     } catch (err) {
@@ -134,15 +147,31 @@ export default function ImageUpload({ onImageUpload, onAnalysisComplete }) {
       </div>
 
       {uploadedImage && (
-        <div className="analyze-button-container">
-          <button
-            className="analyze-button"
-            onClick={handleAnalyze}
-            disabled={isAnalyzing}
-          >
-            {isAnalyzing ? 'Analyzing...' : 'Analyze Image'}
-          </button>
-        </div>
+        <>
+          <div className="caption-input-container">
+            <label className="caption-label" htmlFor="caption-input">
+              Caption / claim to check (optional)
+            </label>
+            <textarea
+              id="caption-input"
+              className="caption-textarea"
+              placeholder="Paste or type the social media caption or claim you want to evaluate against this image."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div className="analyze-button-container">
+            <button
+              className="analyze-button"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? 'Analyzing...' : 'Analyze Image'}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

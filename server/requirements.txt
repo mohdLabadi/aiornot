@@ -3,3 +3,5 @@ pydantic
 fastapi
 python-multipart
 openai
+pillow
+pytesseract

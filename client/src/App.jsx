@@ -7,16 +7,24 @@ export default function App() {
   const [uploadedImage, setUploadedImage] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [gptResult, setGPTResult] = useState(null);
+  const [captionCheckResult, setCaptionCheckResult] = useState(null);
 
   const handleImageUpload = (image) => {
     setUploadedImage(image);
     // Clear previous results when new image is uploaded
     setAnalysisResult(null);
+    setGPTResult(null);
+    setCaptionCheckResult(null);
   };
 
-  const handleAnalysisComplete = (result, gpt_result) => {
+  const handleAnalysisComplete = (result, gpt_result, caption_result) => {
     setAnalysisResult(result);
     setGPTResult(gpt_result);
+    if (caption_result) {
+      setCaptionCheckResult(caption_result);
+    } else {
+      setCaptionCheckResult(null);
+    }
   };
 
   return (
@@ -33,8 +41,11 @@ export default function App() {
           </div>
 
           <div className="tabs-section">
-            <TabsPanel analysisResult={analysisResult}
-              gpt_results={gptResult} />
+            <TabsPanel
+              analysisResult={analysisResult}
+              gpt_results={gptResult}
+              captionResult={captionCheckResult}
+            />
           </div>
         </div>
       </div>

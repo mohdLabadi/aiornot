@@ -150,3 +150,34 @@
   font-size: 0.875rem;
   font-family: 'Courier New', monospace;
 }
+
+.caption-input-container {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.caption-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(71, 85, 105);
+}
+
+.caption-textarea {
+  resize: vertical;
+  min-height: 3rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(203, 213, 225);
+  font-size: 0.875rem;
+  color: rgb(15, 23, 42);
+  background-color: rgb(248, 250, 252);
+}
+
+.caption-textarea:focus {
+  outline: none;
+  border-color: rgb(59, 130, 246);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
+  background-color: white;
+}

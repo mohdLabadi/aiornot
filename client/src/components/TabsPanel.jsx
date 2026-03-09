@@ -6,14 +6,72 @@ import ArticleIcon from '@mui/icons-material/Article';
 import MapIcon from '@mui/icons-material/Map';
 import ReverseSearchResults from './ReverseSearchResults';
 
-export function TabsPanel({ analysisResult, gpt_results }) {
+export function TabsPanel({ analysisResult, gpt_results, captionResult }) {
   const [activeTab, setActiveTab] = useState('overview');
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChartIcon },
-    { id: 'details', label: 'Search', icon: ArticleIcon },
+    { id: 'details', label: 'Caption Check', icon: ArticleIcon },
     { id: 'insights', label: 'Insights', icon: MapIcon }
   ];
+
+  const renderHighlightedCaption = () => {
+    if (!captionResult || !captionResult.result) return null;
+
+    const baseCaption =
+      (gpt_results &&
+        gpt_results.multi_analysis &&
+        gpt_results.multi_analysis.caption) ||
+      captionResult.result.caption ||
+      '';
+
+    const caption = baseCaption;
+    const issues = captionResult.result.problematic_phrases || [];
+
+    if (!caption || issues.length === 0) {
+      return caption;
+    }
+
+    // Build a highlighted version of the caption using problematic phrases
+    let nodes = [caption];
+
+    issues.forEach((issue, index) => {
+      const phrase = issue.phrase;
+      if (!phrase) return;
+
+      const nextNodes = [];
+
+      nodes.forEach((node) => {
+        if (typeof node !== 'string') {
+          nextNodes.push(node);
+          return;
+        }
+
+        const parts = node.split(phrase);
+        parts.forEach((part, partIndex) => {
+          if (part) {
+            nextNodes.push(part);
+          }
+          if (partIndex < parts.length - 1) {
+            const type = issue.issue_type || 'misleading';
+            nextNodes.push(
+              <span
+                key={`${index}-${partIndex}-${phrase}`}
+                className={`caption-token caption-token--${type}`}
+                title={issue.reason}
+              >
+                {phrase}
+              </span>
+            );
+          }
+        });
+      });
+
+      nodes = nextNodes;
+    });
+
+    return nodes;
+  };
 
   return (
     <div className="tabs-container">
@@ -65,18 +123,90 @@ export function TabsPanel({ analysisResult, gpt_results }) {
 
         {activeTab === 'details' && (
           <div className="tab-panel">
-            <h3 className="panel-title">Reverse Search</h3>
+            <h3 className="panel-title">Caption Check</h3>
             <p className="panel-description">
-              Instances of the image on the internet.
+              Compare auto-extracted caption text against what is actually visible in the image.
             </p>
 
-            {analysisResult?.reverse ? (
+            {captionResult && captionResult.result ? (
               <div className="details-content">
-                <ReverseSearchResults reverseSearch={analysisResult.reverse} />
+                <div className="assessment-card">
+                  <div className="assessment-header">
+                    <h4 className="assessment-title">Verdict</h4>
+                    <span className={`assessment-badge ${captionResult.result.overall_verdict}`}>
+                      {captionResult.result.overall_verdict?.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="confidence-bar-container">
+                    <div className="confidence-label-row">
+                      <span className="confidence-label">Alignment confidence</span>
+                      <span className="confidence-value">
+                        {captionResult.result.alignment_confidence
+                          ? `${(captionResult.result.alignment_confidence * 100).toFixed(1)}%`
+                          : 'N/A'}
+                      </span>
+                    </div>
+                    {captionResult.result.alignment_confidence && (
+                      <div className="confidence-bar">
+                        <div
+                          className="confidence-fill"
+                          style={{ width: `${captionResult.result.alignment_confidence * 100}%` }}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="details-card">
+                  <h4 className="section-title">Caption (what the model sees in the image)</h4>
+                  <p className="caption-text">
+                    {renderHighlightedCaption()}
+                  </p>
+                  <div className="caption-legend">
+                    <span className="caption-legend-item">
+                      <span className="caption-legend-swatch caption-token--misleading" /> Misleading / inaccurate
+                    </span>
+                    <span className="caption-legend-item">
+                      <span className="caption-legend-swatch caption-token--exaggeration" /> Exaggerated
+                    </span>
+                    <span className="caption-legend-item">
+                      <span className="caption-legend-swatch caption-token--misinformation" /> Strong misinformation
+                    </span>
+                  </div>
+                </div>
+
+                {captionResult.result.textual_cues && captionResult.result.textual_cues.length > 0 && (
+                  <div className="details-card">
+                    <h4 className="section-title">Textual cues in the caption</h4>
+                    <ul className="textual-cues-list">
+                      {captionResult.result.textual_cues.map((cue, index) => (
+                        <li key={index} className="textual-cue-item">
+                          <span className={`textual-cue-badge textual-cue-${cue.cue_type}`}>
+                            {cue.cue_type}
+                          </span>
+                          <span className="textual-cue-phrase">“{cue.phrase}”</span>
+                          <span className="textual-cue-reason">{cue.reason}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {captionResult.result.reasoning_summary && (
+                  <div className="details-card">
+                    <h4 className="section-title">Explanation</h4>
+                    <p className="review-text">
+                      {captionResult.result.reasoning_summary}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="details-card">
-                <p className="placeholder-text">No data available yet</p>
+                <p className="placeholder-text">
+                  Add a caption in the upload panel and run Analyze Image to see the caption check here.
+                </p>
               </div>
             )}
           </div>
@@ -99,7 +229,7 @@ export function TabsPanel({ analysisResult, gpt_results }) {
                       {gpt_results.analysis.overall_assessment?.toUpperCase() || 'N/A'}
                     </span>
                   </div>
-                  <div className="confidence-bar-container">
+                    <div className="confidence-bar-container">
                     <div className="confidence-label-row">
                       <span className="confidence-label">Confidence Level</span>
                       <span className="confidence-value">
@@ -108,7 +238,7 @@ export function TabsPanel({ analysisResult, gpt_results }) {
                           : 'N/A'}
                       </span>
                     </div>
-                    {gpt_results.confidence && (
+                    {gpt_results.analysis.confidence && (
                       <div className="confidence-bar">
                         <div
                           className="confidence-fill"
@@ -191,42 +321,6 @@ export function TabsPanel({ analysisResult, gpt_results }) {
                   </div>
                 )}
 
-                {/* Multi-Analysis Section */}
-                {gpt_results.multi_analysis && (
-                  <div className="multi-analysis-card">
-                    <div className="multi-analysis-header">
-                      <h4 className="section-title"> Multimodal Analysis</h4>
-                      <span className={`verdict-badge verdict-${gpt_results.multi_analysis.verdict}`}>
-                        {gpt_results.multi_analysis.verdict?.toUpperCase() || 'N/A'}
-                      </span>
-                    </div>
-
-                    <div className="multi-analysis-body">
-                      {gpt_results.multi_analysis.caption && (
-                        <div className="multi-analysis-caption">
-                          <span className="multi-label">Caption:</span>
-                          <p className="caption-text">{gpt_results.multi_analysis.caption}</p>
-                        </div>
-                      )}
-
-                      <div className="multi-analysis-confidence">
-                        <span className="multi-label">Confidence:</span>
-                        <span className="multi-value">
-                          {gpt_results.multi_analysis.confidence
-                            ? `${(gpt_results.multi_analysis.confidence * 100).toFixed(1)}%`
-                            : 'N/A'}
-                        </span>
-                      </div>
-
-                      {gpt_results.multi_analysis.rationale && (
-                        <div className="multi-analysis-rationale">
-                          <span className="multi-label">Rationale:</span>
-                          <p className="rationale-text">{gpt_results.multi_analysis.rationale}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="insights-card">
